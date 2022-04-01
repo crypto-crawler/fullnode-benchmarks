@@ -1,0 +1,9 @@
+{
+    "go.testEnvVars": {
+        "BLOCKNATIVE_API_KEY": "Put your key here for unit tests",
+        "BLOXROUTE_CERT_FILE": "Put your path here for unit tests",
+        "BLOXROUTE_KEY_FILE": "Put your path here for unit tests",
+        "AUTHORIZATION_HEADER:": "Put your header here for unit tests",
+        "GATEWAY_URL": "ws://localhost:28333",
+    }
+}
