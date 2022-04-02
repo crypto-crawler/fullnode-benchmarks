@@ -18,4 +18,10 @@ func TestSignatureToFunctionSelector(t *testing.T) {
 	assert.Equal(t, "0x0902f1ac", methodId.String())
 	jsonStr, _ = methodId.MarshalJSON()
 	assert.Equal(t, "\"0x0902f1ac\"", string(jsonStr))
+
+	methodId = SignatureToFunctionSelector("balanceOf(address)")
+	// see https://www.4byte.directory/signatures/?bytes4_signature=0x70a08231
+	assert.Equal(t, "0x70a08231", methodId.String())
+	jsonStr, _ = methodId.MarshalJSON()
+	assert.Equal(t, "\"0x70a08231\"", string(jsonStr))
 }
