@@ -3,7 +3,7 @@ module github.com/crypto-crawler/fullnode-benchmarks
 go 1.18
 
 require (
-	github.com/crypto-crawler/bloxroute-go v0.5.3
+	github.com/crypto-crawler/bloxroute-go v0.5.4
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/fxfactorial/defi-abigen v0.0.0
 	github.com/gorilla/websocket v1.5.0
