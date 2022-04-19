@@ -61,7 +61,7 @@ func main() {
 	}
 
 	pendingTxCh := make(chan *types.Transaction)
-	err = bloXrouteClient.SubscribeNewTxs([]string{"tx_hash"}, "", pendingTxCh)
+	_, err = bloXrouteClient.SubscribeNewTxs([]string{"tx_hash", "raw_tx"}, "", pendingTxCh)
 	if err != nil {
 		log.Fatal(err)
 	}

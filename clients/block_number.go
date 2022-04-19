@@ -22,7 +22,7 @@ func NewBlockNumberOnBloXroute(bloXrouteClient *client.BloXrouteClient, stopCh <
 	outCh := make(chan *bloXrouteTypes.EthOnBlockResponse)
 	callParams := make([]map[string]string, 0)
 	callParams = append(callParams, map[string]string{"name": "block_number", "method": "eth_blockNumber"})
-	err := bloXrouteClient.SubscribeEthOnBlock(nil, callParams, outCh)
+	_, err := bloXrouteClient.SubscribeEthOnBlock(nil, callParams, outCh)
 	if err != nil {
 		return nil, err
 	}

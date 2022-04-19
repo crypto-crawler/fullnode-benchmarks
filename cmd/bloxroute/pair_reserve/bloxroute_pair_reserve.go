@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/crypto-crawler/bloxroute-go/client"
-	bloxroute_utils "github.com/crypto-crawler/bloxroute-go/utils"
+	"github.com/crypto-crawler/bloxroute-go/types"
 	"github.com/crypto-crawler/fullnode-benchmarks/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -58,8 +58,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	bloXrouteClientEx := client.NewBloXrouteClientExtended(bloXrouteClient, stopCh)
 
-	outCh := make(chan *bloxroute_utils.PairReserves)
+	outCh := make(chan *types.PairReserves)
 	pairs := []common.Address{
 		common.HexToAddress("0x58f876857a02d6762e0101bb5c46a8c1ed44dc16"),
 		common.HexToAddress("0x7efaef62fddcca950418312c6c91aef321375a00"),
@@ -67,7 +68,10 @@ func main() {
 		common.HexToAddress("0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae"),
 		common.HexToAddress("0x2354ef4df11afacb85a5c7f98b624072eccddbb1"),
 	}
-	bloxroute_utils.SubscribePairReserves(bloXrouteClient, pairs, outCh)
+	err = bloXrouteClientEx.SubscribePairReserves(pairs, outCh)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	go utils.Run(outCh, stopCh, *outputFile)
 

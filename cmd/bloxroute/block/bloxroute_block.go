@@ -61,7 +61,7 @@ func main() {
 	}
 
 	pendingBlockCh := make(chan *types.Block)
-	err = bloXrouteClient.SubscribeBdnBlocks([]string{"hash"}, pendingBlockCh)
+	_, err = bloXrouteClient.SubscribeBdnBlocks([]string{"hash"}, pendingBlockCh)
 	if err != nil {
 		log.Fatal(err)
 	}
