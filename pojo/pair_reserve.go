@@ -2,6 +2,7 @@ package pojo
 
 import (
 	"crypto/md5"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -25,9 +26,14 @@ func (p *PairReserve) Hash() uint64 {
 	h.Write(p.Reserve0.Bytes())
 	h.Write(p.Reserve1.Bytes())
 	{
-		n := big.NewInt(0)
-		n.SetInt64(p.BlockNumber)
-		h.Write(n.Bytes())
+		b := make([]byte, 4)
+		binary.LittleEndian.PutUint32(b, p.BlockTimestampLast)
+		h.Write(b)
+	}
+	{
+		b := make([]byte, 8)
+		binary.LittleEndian.PutUint64(b, uint64(p.BlockNumber))
+		h.Write(b)
 	}
 	bs := h.Sum(nil)
 

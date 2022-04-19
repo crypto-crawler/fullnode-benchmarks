@@ -2,7 +2,6 @@ package clients
 
 import (
 	"context"
-	"time"
 
 	"github.com/crypto-crawler/fullnode-benchmarks/pojo"
 	"github.com/ethereum/go-ethereum/common"
@@ -110,15 +109,14 @@ func PullPairReserves(fullNodeUrl string, pairs []common.Address, stopCh <-chan 
 
 	outCh := make(chan *pojo.PairReserve)
 
-	visited := make(map[uint64]bool)
 	go func() {
-		ticker := time.NewTicker(10 * time.Millisecond) // pull per 10ms
+		visited := make(map[uint64]bool)
 		for {
 			select {
 			case <-stopCh:
 				close(outCh)
 				return
-			case <-ticker.C:
+			default:
 				for i, pairInstance := range pairInstances {
 					ret, err := pairInstance.GetReserves(nil)
 					if err != nil {
