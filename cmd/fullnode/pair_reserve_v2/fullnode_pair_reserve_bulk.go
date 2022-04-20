@@ -13,10 +13,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// Use PullPairReserves().
+// Use PullPairReservesBulk().
 func main() {
 	fullNodeUrl := flag.String("fullnode", os.Getenv("FULLNODE_URL"), "The fullnode URL")
-	outputFile := flag.String("output", "fullnode-pair-reserve.json", "The output file")
+	outputFile := flag.String("output", "fullnode-pair-reserve-bulk.json", "The output file")
 	flag.Parse()
 	if *fullNodeUrl == "" || *outputFile == "" {
 		flag.Usage()
@@ -36,7 +36,7 @@ func main() {
 		common.HexToAddress("0x2354ef4df11afacb85a5c7f98b624072eccddbb1"),
 	}
 
-	pairReserveCh, err := clients.PullPairReserves(*fullNodeUrl, pairs, stopCh)
+	pairReserveCh, err := clients.PullPairReservesBulk(*fullNodeUrl, pairs, stopCh)
 	if err != nil {
 		log.Fatal(err)
 	}

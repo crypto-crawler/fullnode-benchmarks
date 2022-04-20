@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 
+	"github.com/crypto-crawler/fullnode-benchmarks/abi"
 	"github.com/crypto-crawler/fullnode-benchmarks/pojo"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -128,6 +129,59 @@ func PullPairReserves(fullNodeUrl string, pairs []common.Address, stopCh <-chan 
 						Reserve0:           pojo.NewBigInt(ret.Reserve0),
 						Reserve1:           pojo.NewBigInt(ret.Reserve1),
 						BlockTimestampLast: ret.BlockTimestampLast,
+						BlockNumber:        blockNumber.Get().Int64(),
+					}
+					hash := pairReserve.Hash()
+					if !visited[hash] {
+						outCh <- pairReserve
+						visited[hash] = true
+					}
+				}
+			}
+		}
+	}()
+
+	return outCh, nil
+}
+
+func PullPairReservesBulk(fullNodeUrl string, pairs []common.Address, stopCh <-chan struct{}) (<-chan *pojo.PairReserve, error) {
+	ctx := context.Background()
+	ethClient, err := ethclient.DialContext(ctx, fullNodeUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	blockNumber, err := NewBlockNumberOnFullnode(fullNodeUrl, stopCh)
+	if err != nil {
+		return nil, err
+	}
+
+	router := common.HexToAddress("0x45974B68d81Be55E71F7ACD5c1378a9d52CF02Be")
+	bulkReader, err := abi.NewBulkReader(router, ethClient)
+	if err != nil {
+		return nil, err
+	}
+
+	outCh := make(chan *pojo.PairReserve)
+
+	go func() {
+		visited := make(map[uint64]bool)
+		for {
+			select {
+			case <-stopCh:
+				close(outCh)
+				return
+			default:
+				arr, err := bulkReader.GetReservesForBenchmark(nil, pairs)
+				if err != nil {
+					panic(err)
+				}
+				for i := 0; i < len(pairs); i++ {
+					pairReserve := &pojo.PairReserve{
+						Pair:               pairs[i],
+						Reserve0:           pojo.NewBigInt(arr[i][0]),
+						Reserve1:           pojo.NewBigInt(arr[i][1]),
+						BlockTimestampLast: uint32(arr[i][2].Int64()),
 						BlockNumber:        blockNumber.Get().Int64(),
 					}
 					hash := pairReserve.Hash()
