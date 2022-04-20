@@ -144,6 +144,7 @@ func PullPairReserves(fullNodeUrl string, pairs []common.Address, stopCh <-chan 
 	return outCh, nil
 }
 
+// BulkReader
 func PullPairReservesBulk(fullNodeUrl string, pairs []common.Address, stopCh <-chan struct{}) (<-chan *pojo.PairReserve, error) {
 	ctx := context.Background()
 	ethClient, err := ethclient.DialContext(ctx, fullNodeUrl)
@@ -172,6 +173,65 @@ func PullPairReservesBulk(fullNodeUrl string, pairs []common.Address, stopCh <-c
 				close(outCh)
 				return
 			default:
+				arr, err := bulkReader.GetReservesForBenchmark(nil, pairs)
+				if err != nil {
+					panic(err)
+				}
+				for i := 0; i < len(pairs); i++ {
+					pairReserve := &pojo.PairReserve{
+						Pair:               pairs[i],
+						Reserve0:           pojo.NewBigInt(arr[i][0]),
+						Reserve1:           pojo.NewBigInt(arr[i][1]),
+						BlockTimestampLast: uint32(arr[i][2].Int64()),
+						BlockNumber:        blockNumber.Get().Int64(),
+					}
+					hash := pairReserve.Hash()
+					if !visited[hash] {
+						outCh <- pairReserve
+						visited[hash] = true
+					}
+				}
+			}
+		}
+	}()
+
+	return outCh, nil
+}
+
+// BulkReader + header
+func PullPairReservesBulkHeader(fullNodeUrl string, pairs []common.Address, stopCh <-chan struct{}) (<-chan *pojo.PairReserve, error) {
+	ctx := context.Background()
+	ethClient, err := ethclient.DialContext(ctx, fullNodeUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	blockNumber, err := NewBlockNumberOnFullnode(fullNodeUrl, stopCh)
+	if err != nil {
+		return nil, err
+	}
+
+	headerCh, err := SubscribeNewHead(fullNodeUrl, stopCh)
+	if err != nil {
+		return nil, err
+	}
+
+	router := common.HexToAddress("0x45974B68d81Be55E71F7ACD5c1378a9d52CF02Be")
+	bulkReader, err := abi.NewBulkReader(router, ethClient)
+	if err != nil {
+		return nil, err
+	}
+
+	outCh := make(chan *pojo.PairReserve)
+
+	go func() {
+		visited := make(map[uint64]bool)
+		for {
+			select {
+			case <-stopCh:
+				close(outCh)
+				return
+			case <-headerCh:
 				arr, err := bulkReader.GetReservesForBenchmark(nil, pairs)
 				if err != nil {
 					panic(err)
