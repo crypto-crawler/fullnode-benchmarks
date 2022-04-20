@@ -20,6 +20,7 @@ func main() {
 	certFile := flag.String("cert", "external_gateway_cert.pem", "The cert file")
 	keyFile := flag.String("key", "external_gateway_key.pem", "The key file")
 	outputFile := flag.String("output", "bloxroute-pair-reserve-cloud.json", "The output file")
+	pairFile := flag.String("pairs", "pairs.txt.gz", "The pairs file")
 	gatewayUrl := flag.String("gateway", "", "The gateway url")
 	header := flag.String("header", "", "The authorization header")
 	flag.Parse()
@@ -46,6 +47,21 @@ func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	stopCh := make(chan struct{})
+
+	pairs := []common.Address{
+		common.HexToAddress("0x58f876857a02d6762e0101bb5c46a8c1ed44dc16"),
+		common.HexToAddress("0x7efaef62fddcca950418312c6c91aef321375a00"),
+		common.HexToAddress("0x0ed7e52944161450477ee417de9cd3a859b14fd0"),
+		common.HexToAddress("0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae"),
+		common.HexToAddress("0x2354ef4df11afacb85a5c7f98b624072eccddbb1"),
+	}
+	if *pairFile != "" {
+		arr, err := utils.ReadPairs(*pairFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pairs = arr
+	}
 
 	var bloXrouteClient *client.BloXrouteClient = nil
 	var err error = nil
@@ -75,13 +91,6 @@ func main() {
 			reserveCh <- pairReserve
 		}
 	}()
-	pairs := []common.Address{
-		common.HexToAddress("0x58f876857a02d6762e0101bb5c46a8c1ed44dc16"),
-		common.HexToAddress("0x7efaef62fddcca950418312c6c91aef321375a00"),
-		common.HexToAddress("0x0ed7e52944161450477ee417de9cd3a859b14fd0"),
-		common.HexToAddress("0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae"),
-		common.HexToAddress("0x2354ef4df11afacb85a5c7f98b624072eccddbb1"),
-	}
 	err = bloXrouteClientEx.SubscribePairReservesForBenchmark(pairs, outCh)
 	if err != nil {
 		log.Fatal(err)

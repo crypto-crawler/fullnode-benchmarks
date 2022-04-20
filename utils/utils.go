@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bufio"
+	"compress/gzip"
 	"encoding/hex"
 	"encoding/json"
 	"log"
@@ -71,4 +72,26 @@ func DecodeReturnedDataOfGetReserves(pair common.Address, hexStr string, blockNu
 		BlockNumber:        blockNumber,
 	}
 	return pairReserve, nil
+}
+
+func ReadPairs(pairFile string) ([]common.Address, error) {
+	file, err := os.Open(pairFile)
+	if err != nil {
+		return nil, err
+	}
+
+	gz, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	defer gz.Close()
+
+	pairs := make([]common.Address, 0)
+	scanner := bufio.NewScanner(gz)
+	for scanner.Scan() {
+		line := scanner.Text()
+		pairs = append(pairs, common.HexToAddress(line))
+	}
+	return pairs, nil
 }

@@ -17,6 +17,7 @@ import (
 func main() {
 	fullNodeUrl := flag.String("fullnode", os.Getenv("FULLNODE_URL"), "The fullnode URL")
 	outputFile := flag.String("output", "fullnode-pair-reserve.json", "The output file")
+	pairFile := flag.String("pairs", "pairs.txt.gz", "The pairs file")
 	flag.Parse()
 	if *fullNodeUrl == "" || *outputFile == "" {
 		flag.Usage()
@@ -34,6 +35,13 @@ func main() {
 		common.HexToAddress("0x0ed7e52944161450477ee417de9cd3a859b14fd0"),
 		common.HexToAddress("0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae"),
 		common.HexToAddress("0x2354ef4df11afacb85a5c7f98b624072eccddbb1"),
+	}
+	if *pairFile != "" {
+		arr, err := utils.ReadPairs(*pairFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pairs = arr
 	}
 
 	pairReserveCh, err := clients.PullPairReserves(*fullNodeUrl, pairs, stopCh)
