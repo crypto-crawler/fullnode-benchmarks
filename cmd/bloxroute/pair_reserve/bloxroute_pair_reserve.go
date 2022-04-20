@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/crypto-crawler/bloxroute-go/client"
-	"github.com/crypto-crawler/bloxroute-go/types"
+	bloxroute_types "github.com/crypto-crawler/bloxroute-go/types"
+	"github.com/crypto-crawler/fullnode-benchmarks/pojo"
 	"github.com/crypto-crawler/fullnode-benchmarks/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -60,7 +61,20 @@ func main() {
 	}
 	bloXrouteClientEx := client.NewBloXrouteClientExtended(bloXrouteClient, stopCh)
 
-	outCh := make(chan *types.PairReserves)
+	outCh := make(chan *bloxroute_types.PairReserves)
+	reserveCh := make(chan *pojo.PairReserve)
+	go func() {
+		for x := range outCh {
+			pairReserve := &pojo.PairReserve{
+				Pair:               x.Pair,
+				Reserve0:           pojo.NewBigInt(x.Reserve0),
+				Reserve1:           pojo.NewBigInt(x.Reserve1),
+				BlockNumber:        x.BlockNumber,
+				BlockTimestampLast: x.BlockTimestampLast,
+			}
+			reserveCh <- pairReserve
+		}
+	}()
 	pairs := []common.Address{
 		common.HexToAddress("0x58f876857a02d6762e0101bb5c46a8c1ed44dc16"),
 		common.HexToAddress("0x7efaef62fddcca950418312c6c91aef321375a00"),
@@ -73,7 +87,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	go utils.Run(outCh, stopCh, *outputFile)
+	go utils.Run(reserveCh, stopCh, *outputFile)
 
 	<-signals
 	log.Println("Ctrl+C detected, exiting...")

@@ -9,15 +9,11 @@ import (
 )
 
 type PairReserve struct {
-	// Index              int64          `json:"index"`
-	Pair common.Address `json:"pair"`
-	// Token0             common.Address `json:"token0"`
-	// Token1             common.Address `json:"token1"`
-	Reserve0           *BigInt `json:"reserve0"`
-	Reserve1           *BigInt `json:"reserve1"`
-	BlockTimestampLast uint32  `json:"block_timestamp_last"`
-	BlockNumber        int64   `json:"block_number"`
-	// CreatedAt          time.Time `json:"created_at"`
+	Pair               common.Address `json:"pair"`
+	Reserve0           *BigInt        `json:"reserve0"`
+	Reserve1           *BigInt        `json:"reserve1"`
+	BlockTimestampLast uint32         `json:"block_timestamp_last"`
+	BlockNumber        int64          `json:"block_number"`
 }
 
 func (p *PairReserve) Hash() uint64 {
