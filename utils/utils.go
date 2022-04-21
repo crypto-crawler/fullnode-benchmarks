@@ -33,7 +33,6 @@ func Run[T any](inputCh <-chan T, stopCh <-chan struct{}, outputFile string) {
 			bw.WriteString(txt + "\n")
 			mu.Unlock()
 		}
-		close(outputCh)
 	}()
 
 	ticker := time.NewTicker(time.Second) // flush per second
@@ -55,6 +54,9 @@ func Run[T any](inputCh <-chan T, stopCh <-chan struct{}, outputFile string) {
 		bytes, _ = json.Marshal(jsonMap)
 		outputCh <- string(bytes)
 	}
+
+	ticker.Stop()
+	close(outputCh)
 }
 
 // Decode the data of ethOnBlock of GetReserves()
