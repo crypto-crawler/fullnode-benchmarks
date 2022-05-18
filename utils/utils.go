@@ -3,16 +3,22 @@ package utils
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"log"
 	"math/big"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/crypto-crawler/fullnode-benchmarks/pojo"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 func Run[T any](inputCh <-chan T, stopCh <-chan struct{}, outputFile string) {
@@ -96,4 +102,28 @@ func ReadPairs(pairFile string) ([]common.Address, error) {
 		pairs = append(pairs, common.HexToAddress(line))
 	}
 	return pairs, nil
+}
+
+// Call ethClient.TransactionByHash() repeatedly until the transaction is returned.
+//
+// count, total number of requests, should be greater than zero.
+func TransactionByHashWithRetry(ethClient *ethclient.Client, txHash common.Hash, count int) (*types.Transaction, bool, error) {
+	ctx := context.Background()
+	var tx *types.Transaction
+	var isPending bool
+	var err error
+
+	interval := 1 * time.Millisecond
+	start := time.Now()
+	for i := 0; i < count; i++ {
+		tx, isPending, err = ethClient.TransactionByHash(ctx, txHash)
+		if tx != nil || err != ethereum.NotFound {
+			return tx, isPending, err
+		}
+
+		time.Sleep(interval)
+		interval *= 2
+	}
+
+	return tx, isPending, errors.New("timeout, " + strconv.FormatInt(time.Since(start).Milliseconds(), 10) + "ms elapsed")
 }

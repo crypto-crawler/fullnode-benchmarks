@@ -2,9 +2,11 @@ package clients
 
 import (
 	"context"
+	"log"
 
 	"github.com/crypto-crawler/fullnode-benchmarks/abi"
 	"github.com/crypto-crawler/fullnode-benchmarks/pojo"
+	"github.com/crypto-crawler/fullnode-benchmarks/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -37,6 +39,75 @@ func SubscribePendingTxHash(fullNodeUrl string, stopCh <-chan struct{}) (<-chan 
 	}()
 
 	return txHashCh, nil
+}
+
+// Subscribe pending transactions from the fullnode.
+func SubscribePendingTx(fullNodeUrl string, fromWhiteList map[common.Address]bool, toWhiteList map[common.Address]bool, stopCh <-chan struct{}, txCh chan<- pojo.TxData) error {
+	ctx := context.Background()
+	rpcClient, err := rpc.DialContext(ctx, fullNodeUrl)
+	if err != nil {
+		return err
+	}
+
+	ethClient, err := ethclient.DialContext(ctx, fullNodeUrl)
+	if err != nil {
+		return err
+	}
+	gethClient := gethclient.New(rpcClient)
+
+	txHashCh := make(chan common.Hash, 1024)
+	sub, err := gethClient.SubscribePendingTransactions(ctx, txHashCh)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	go func() {
+		for {
+			select {
+			case <-stopCh:
+				sub.Unsubscribe()
+				rpcClient.Close()
+				return
+			case txnHash := <-txHashCh:
+				go func() {
+					tx, isPending, err := utils.TransactionByHashWithRetry(ethClient, txnHash, 11)
+					if err != nil {
+						// Usually happens when eth.syncing is not false
+						// log.Printf("TransactionByHashWithRetry(%s) failed, error: %v", txnHash.Hex(), err)
+						return
+					}
+					// only care about pending transactions
+					if tx == nil || !isPending {
+						return
+					}
+					// Only care about transactions that interact with smart contracts
+					interactWithContract := tx.To() != nil && len(tx.Data()) > 0
+					if !interactWithContract {
+						return
+					}
+
+					txData := pojo.TxData(pojo.NewRawTransaction(tx, fullNodeUrl))
+					// if both are empty, there is no filtering at all
+					if len(toWhiteList) == 0 && len(fromWhiteList) == 0 {
+						txCh <- txData
+					} else if len(toWhiteList) > 0 && toWhiteList[*tx.To()] {
+						// transactions sent to addresses in `toWhiteList`
+						txCh <- txData
+					} else if len(fromWhiteList) > 0 {
+						// or transactions sent from addresses in `toWhiteList`
+						msg, err := tx.AsMessage(types.LatestSignerForChainID(tx.ChainId()), nil)
+						if err == nil {
+							if fromWhiteList[msg.From()] {
+								txCh <- txData
+							}
+						}
+					}
+				}()
+			}
+		}
+	}()
+
+	return nil
 }
 
 func SubscribeNewHead(fullNodeUrl string, stopCh <-chan struct{}) (<-chan *types.Header, error) {
